@@ -9,9 +9,19 @@ import re
 from subprocess import Popen, STDOUT, PIPE
 from ansible_playbook_runner import Runner
 
-api_version = '2200'
+api_version = '2600'
 
-rel_dict = {'FC Networks': 'fc_networks',
+rel_dict = {
+            'Appliance Configuration Timeconfig': 'appliance_configuration_timeconfig',
+            'Appliance SNMPv1 Trap Destinations': 'appliance_device_snmp_v1_trap_destinations',
+            'Appliance SNMPv3 Users': 'appliance_device_snmp_v3_users',
+            'Appliance SNMPv3 Trap Destinations': 'appliance_device_snmp_v3_trap_destinations',
+            'Appliance SSH Access': 'appliance_ssh_access',
+            'Appliance Device Read Community': 'appliance_device_read_community',
+            'Appliance Time and Locale Configuration': 'appliance_time_and_locale_configuration',
+            'ID Pool IPv4 Subnets': 'id_pools_ipv4_subnets',
+            'ID Pool IPv4 Range': 'id_pools_ipv4_ranges',
+            'FC Networks': 'fc_networks',
             'FCoE Networks': 'fcoe_networks',
             'Ethernet Networks': 'ethernet_networks',
             'Network Sets': 'network_sets',

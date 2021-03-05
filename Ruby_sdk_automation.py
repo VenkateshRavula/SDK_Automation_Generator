@@ -1,8 +1,8 @@
 import os
 import re
 
-api_version = 2200
-i3s_api_versions = [1000, 1020, 1600, 2000]
+api_version = 2600
+i3s_api_versions = [1000, 1020, 1600, 2000, 2010]
 
 # Resources dictionary
 ruby_resource_dict = {'Connection Template': 'connection_template',

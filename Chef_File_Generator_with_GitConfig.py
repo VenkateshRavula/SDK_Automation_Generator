@@ -1,6 +1,6 @@
 import os, re, shutil, git
 
-api_version = 2200
+api_version = 2600
 # Resources dictionary
 chef_resource_dict = {'Connection Template': 'connection_template_provider',
                       'Enclosure': 'enclosure_provider',
