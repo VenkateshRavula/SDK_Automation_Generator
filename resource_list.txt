@@ -1,0 +1,28 @@
+Ethernet Networks
+FC Networks
+FCoE Networks
+Connection Templates
+Network Sets
+Certificates Server
+Hypervisor Managers
+Tasks
+Scopes
+Logical Interconnect Groups
+Enclosure Groups
+Enclosures
+Firmware Drivers
+Interconnect Types
+Interconnects
+Logical Enclosures
+Logical Interconnects
+Uplink Sets
+Server Hardware Types
+Server Hardware
+Storage Systems
+Storage Pools
+Storage Volume Templates
+Volumes
+Server Profile Templates
+Hypervisor Cluster Profiles
+Server Profiles
+Storage Volume Attachments
