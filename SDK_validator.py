@@ -1,4 +1,3 @@
-
 import logging, fileinput, fnmatch, subprocess
 import requests
 from bs4 import BeautifulSoup
@@ -51,6 +50,7 @@ rel_dict = {
             'Uplink Sets': 'uplink_sets'
             }
 
+
 class DataFromWebScraping(object):
     def __init__(self, ele):
         self.ele = ele
@@ -68,7 +68,8 @@ class DataFromWebScraping(object):
         URL = "https://techlibrary.hpe.com/docs/enterprise/servers/oneview5.3/cicf-api/en/rest/" + self.replaced_ele + ".html.js"
         r = requests.get(URL)
 
-        soup = BeautifulSoup(r.content, 'html5lib')  # If this line causes an error, run 'pip install html5lib' or install html5lib
+        soup = BeautifulSoup(r.content,
+                             'html5lib')  # If this line causes an error, run 'pip install html5lib' or install html5lib
         body = soup.find('body')
         string = str(body).replace('<body>define([],"', '').replace('");</body>', '')
         soup = BeautifulSoup(string, 'html5lib')
@@ -82,13 +83,15 @@ class DataFromWebScraping(object):
             http_methods.append(span.text.strip())
         for http_method, api in zip(http_methods, apis):
             api_with_method.append({api, http_method})
-        
+
         return api_with_method
+
 
 class Tee(object):
     """
     To show logs on console and flushing the same to logs file.
     """
+
     def __init__(self, filename):
         self.stdout = sys.stdout
         self.file = filename
@@ -101,6 +104,7 @@ class Tee(object):
     def flush(self):
         self.stdout.flush()
         self.file.flush()
+
 
 def runAnsiblePlaybooks(success_files, failed_files):
     """
@@ -123,14 +127,16 @@ def runAnsiblePlaybooks(success_files, failed_files):
 
     return success_files, failed_files
 
+
 def LoadResourcesFromFile():
     """
     To load resources(examples) from external config file.
     """
-    resource_file = open('re.txt','r')
+    resource_file = open('re.txt', 'r')
     resources_from_file = resource_file.read().splitlines()
     resource_file.close()
     return resources_from_file
+
 
 def modifyExecutedFiles(executed_files):
     """
@@ -143,6 +149,7 @@ def modifyExecutedFiles(executed_files):
         exe.append(executed_file)
     return list(set(exe))
 
+
 def ExecuteFiles(selected_sdk):
     is_ansible = False
     if selected_sdk not in ['ansible']:
@@ -153,13 +160,13 @@ def ExecuteFiles(selected_sdk):
     success_files = []
     examples = []
     val = selected_sdk
-    valid_sdks = ['python', 'ruby', 'go', 'ansible', 'puppet', 'chef']
+    valid_sdks = ['python', 'ruby', 'go', 'ansible', 'puppet', 'chef', 'terraform']
     if val in ['ruby', 'chef', 'puppet']:
         rel_dict2 = {'Storage Volume Templates': 'volume_templates',
                      'Storage Volume Attachments': 'volume_attachments',
                      'Certificates Server': 'server_certificates',
                      'Server Hardware': 'server_hardwares',
-                    }
+                     }
         rel_dict.update(rel_dict2)
     else:
         pass
@@ -168,12 +175,12 @@ def ExecuteFiles(selected_sdk):
     f = open(LOG_FILENAME, 'w')
     original = sys.stdout
     sys.stdout = Tee(f)
-    
+
     if val in valid_sdks and val == 'ansible':
         is_ansible = True
         success_files, failed_files = runAnsiblePlaybooks(success_files, failed_files)
         return success_files, is_ansible
-        f.close() 
+        f.close()
     else:
         pass
 
@@ -186,7 +193,7 @@ def ExecuteFiles(selected_sdk):
                 if val == 'python':
                     example_file_with_extension = example_file + str('.py')
                     print(">> Executing {}..".format(example))
-                    exec(compile(open(example_file_with_extension).read(), example_file_with_extension, 'exec'))
+                    exec (compile(open(example_file_with_extension).read(), example_file_with_extension, 'exec'))
                     success_files.append(example)
                 elif val == 'ruby' and example not in ['tasks', 'interconnect_types']:
                     example_file_with_extension = example_file[:-1] + str('.rb')
@@ -196,12 +203,13 @@ def ExecuteFiles(selected_sdk):
                     contents = p.stdout.read()
                     print(contents)
                     output, errors = p.communicate()
-                    if errors is  None:
+                    if errors is None:
                         success_files.append(example)
                     else:
                         failed_files.append(example)
                 elif val == 'go':
-                    value_updated = input("\nPlease provide \"true\" as input if below mentioned example have varaiable updated with described values as below else provide \"false\" as input to terminate\n\nexamples/server_certificate.go\n\tserver_certificate_ip\t= \"172.18.11.11\"\nexamples/hypervisor_managers.go\n\thypervisor_manager_ip\t= \"172.18.13.11\"//\"<hypervisor_manager_ip>\"\n\tusername\t= \"dcs\" //\"<hypervisor_user_name>\"\n\tpassword\t= \"dcs\" //\"<hypervisor_password>\"\nexamples/storage_systems.go\n\tusername\t=\"dcs\"\n\tpassword\t=\"dcs\"\n\thost_ip \t=\"172.18.11.11\"\n\thost2_ip\t=\"172.18.11.12\"\n>>")
+                    value_updated = input(
+                        "\nPlease provide \"true\" as input if below mentioned example have varaiable updated with described values as below else provide \"false\" as input to terminate\n\nexamples/server_certificate.go\n\tserver_certificate_ip\t= \"172.18.11.11\"\nexamples/hypervisor_managers.go\n\thypervisor_manager_ip\t= \"172.18.13.11\"//\"<hypervisor_manager_ip>\"\n\tusername\t= \"dcs\" //\"<hypervisor_user_name>\"\n\tpassword\t= \"dcs\" //\"<hypervisor_password>\"\nexamples/storage_systems.go\n\tusername\t=\"dcs\"\n\tpassword\t=\"dcs\"\n\thost_ip \t=\"172.18.11.11\"\n\thost2_ip\t=\"172.18.11.12\"\n>>")
                     if value_updated.lower() == 'false':
                         sys.exit()
                     example_file_with_extension = example_file + str('.go')
@@ -211,11 +219,138 @@ def ExecuteFiles(selected_sdk):
                     contents = p.stdout.read()
                     print(contents)
                     output, errors = p.communicate()
-                    if errors is  None:
+                    if errors is None:
                         success_files.append(example)
                     else:
                         failed_files.append(example)
-                elif val == 'puppet'and example not in ['tasks', 'scopes', 'interconnect_types']:
+                elif val == 'terraform':
+                    ''' value_updated = input("\nPlease provide \"true\" as input if below mentioned example have varaiable updated with described values as below else provide \"false\" as input to terminate\n\nexamples/server_certificate.go\n\tserver_certificate_ip\t= \"172.18.11.11\"\nexamples/hypervisor_managers.go\n\thypervisor_manager_ip\t= \"172.18.13.11\"//\"<hypervisor_manager_ip>\"\n\tusername\t= \"dcs\" //\"<hypervisor_user_name>\"\n\tpassword\t= \"dcs\" //\"<hypervisor_password>\"\nexamples/storage_systems.go\n\tusername\t=\"dcs\"\n\tpassword\t=\"dcs\"\n\thost_ip \t=\"172.18.11.11\"\n\thost2_ip\t=\"172.18.11.12\"\n>>")
+                    if value_updated.lower() == 'false':
+                    sys.exit()'''
+                    build_cmd = "go build -o terraform-provider-oneview"
+                    moving_binary_cmd1 = "mkdir -p ~/.terraform.d/plugins/"
+                    moving_binary_cmd2 = "mv terraform-provider-oneview ~/.terraform.d/plugins/"
+                    build = subprocess.Popen(build_cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+                    build.wait()
+                    if build.poll() == 0:
+                        build = subprocess.Popen(moving_binary_cmd1, stdout=subprocess.PIPE, stdin=subprocess.PIPE,
+                                                 shell=True)
+                        build = subprocess.Popen(moving_binary_cmd2, stdout=subprocess.PIPE, stdin=subprocess.PIPE,
+                                                 shell=True)
+                    build_output, build_errors = build.communicate()
+                    if build_errors:
+                        print(build_errors)
+                        sys.exit()
+                    example_loc = cwd + '/examples/' + example + '/'
+                    init_cmd = "terraform init"
+                    init_p = subprocess.Popen(init_cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+                    print("running terraform init")
+                    init_p.wait()
+                    for i in range(3):
+                        if i == 0:
+                            copy = "cp " + example_loc + "main.tf " + cwd
+                            copy_p = subprocess.Popen(copy, stdout=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+                            _, copy_errors = copy_p.communicate()
+                            if copy_errors is None:
+                                plan_cmd = "terraform plan"
+                                print("executing main.tf plan: ", example)
+                                plan_p = subprocess.Popen(plan_cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE,
+                                                          shell=True)
+                                plan_p.wait()
+                                if plan_p.poll() == 0:
+                                    _, plan_errors = plan_p.communicate()
+                                    if plan_errors is None:
+                                        apply_cmd = "terraform apply --auto-approve"
+                                        print("executing main.tf apply: ", example)
+                                        apply_p = subprocess.Popen(apply_cmd, stdout=subprocess.PIPE,
+                                                                   stdin=subprocess.PIPE, shell=True)
+                                        _, apply_errors = apply_p.communicate()
+                                        apply_p.wait()
+                                        os.remove(cwd + "/main.tf")
+                                        if apply_errors != None:
+                                            failed_files.append(example + " main.tf")
+                                        else:
+                                            success_files.append(example + " main.tf")
+                                    else:
+                                        os.remove(cwd + "/main.tf")
+                                        failed_files.append(example + " main.tf")
+                                else:
+                                    os.remove(cwd + "/main.tf")
+                                    failed_files.append(example + " main.tf plan_p.poll is != 0, ")
+                            else:
+                                failed_files.append(example + " failed to copy main file, ")
+                        elif i == 1:
+                            copy = "cp " + example_loc + "update_resource.tf " + cwd
+                            copy_p = subprocess.Popen(copy, stdout=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+                            _, copy_errors = copy_p.communicate()
+                            if copy_errors is None:
+                                print("executing update_resource.tf plan: ", example)
+                                plan_cmd = "terraform plan"
+                                plan_p = subprocess.Popen(plan_cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE,
+                                                          shell=True)
+                                plan_p.wait()
+                                if plan_p.poll() == 0:
+                                    _, plan_errors = plan_p.communicate()
+                                    if plan_errors is None:
+                                        print("executing update_resource.tf apply: ", example)
+                                        apply_cmd = "terraform apply --auto-approve"
+                                        apply_p = subprocess.Popen(apply_cmd, stdout=subprocess.PIPE,
+                                                                   stdin=subprocess.PIPE, shell=True)
+                                        apply_p.wait()
+                                        _, apply_errors = apply_p.communicate()
+                                        os.remove(cwd + "/update_resource.tf")
+                                        if apply_errors != None:
+                                            failed_files.append(example + " update_resource.tf")
+                                        else:
+                                            success_files.append(example + " update_resource.tf")
+                                    else:
+                                        os.remove(cwd + "/update_resource.tf")
+                                        failed_files.append(example + " update_resource.tf")
+                                else:
+                                    os.remove(cwd + "/update_resource.tf")
+                                    failed_files.append(example + " update_resource.tf the plan_p.poll is != 0, ")
+                            else:
+                                failed_files.append(example + " failed to copy update_resource file, ")
+                        else:
+                            copy = "cp " + example_loc + "data_source.tf " + cwd
+                            copy_p = subprocess.Popen(copy, stdout=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+                            _, copy_errors = copy_p.communicate()
+                            if copy_errors is None:
+                                print("executing data_source.tf plan: ", example)
+                                plan_cmd = "terraform plan"
+                                plan_p = subprocess.Popen(plan_cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE,
+                                                          shell=True)
+                                plan_p.wait()
+                                if plan_p.poll() == 0:
+                                    _, plan_errors = plan_p.communicate()
+                                    if plan_errors is None:
+                                        print("executing data_source.tf apply: ", example)
+                                        apply_cmd = "terraform apply --auto-approve"
+                                        apply_p = subprocess.Popen(apply_cmd, stdout=subprocess.PIPE,
+                                                                   stdin=subprocess.PIPE, shell=True)
+                                        apply_p.wait()
+                                        _, apply_errors = apply_p.communicate()
+                                        os.remove(cwd + "/data_source.tf")
+                                        if apply_errors != None:
+                                            failed_files.append(example + " data_source.tf")
+                                        else:
+                                            success_files.append(example + " data_source.tf")
+                                    else:
+                                        os.remove(cwd + "/data_source.tf")
+                                        failed_files.append(example + " data_source.tf")
+                                else:
+                                    os.remove(cwd + "/data_source.tf")
+                                    failed_files.append(example + " data_source.tf the plan_p.poll is != 0, ")
+                            else:
+                                failed_files.append(example + " failed to copy data_source file ")
+                    '''contents = p.stdout.read()
+                    print(contents)
+                    output, errors = p.communicate()
+                    if errors is  None:
+                        success_files.append(example)
+                    else:
+                        failed_files.append(example)'''
+                elif val == 'puppet' and example not in ['tasks', 'scopes', 'interconnect_types']:
                     example_file_with_extension = example_file[:-1] + str('.pp')
                     cmd = "puppet apply --modulepath={}".format(example_file_with_extension)
                     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
@@ -223,11 +358,11 @@ def ExecuteFiles(selected_sdk):
                     contents = p.stdout.read()
                     print(contents)
                     output, errors = p.communicate()
-                    if errors is  None:
+                    if errors is None:
                         success_files.append(example)
                     else:
                         failed_files.append(example)
-                elif val == 'chef'and example not in ['tasks', 'scopes', 'interconnect_types']:
+                elif val == 'chef' and example not in ['tasks', 'scopes', 'interconnect_types']:
                     example_file_with_extension = example_file[:-1] + str('.rb')
                     cmd = "chef client -z -o oneview::{}".format(example)
                     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
@@ -235,7 +370,7 @@ def ExecuteFiles(selected_sdk):
                     contents = p.stdout.read()
                     print(contents)
                     output, errors = p.communicate()
-                    if errors is  None:
+                    if errors is None:
                         success_files.append(example)
                     else:
                         failed_files.append(example)
@@ -243,7 +378,7 @@ def ExecuteFiles(selected_sdk):
                     pass
 
             except Exception as e:
-                print("Failed to execute {} with exception {}".format(str(example),(str(e))))
+                print("Failed to execute {} with exception {}".format(str(example), (str(e))))
                 failed_files.append(example)
         sys.stdout = original
         print("success files are {}".format(str(success_files)))
@@ -252,6 +387,7 @@ def ExecuteFiles(selected_sdk):
 
     else:
         print("Sorry, please enter the valid SDK among the following {}".format(str(valid_sdks)))
+
 
 class WriteToChangeLog(object):
     """
@@ -268,6 +404,7 @@ class WriteToChangeLog(object):
     :param rel_version:
     :return:
     """
+
     def __init__(self, rel_list, sdk):
         self.rel_list = rel_list
         self.sdk = sdk
@@ -305,7 +442,7 @@ class WriteToChangeLog(object):
         line_number = 0
         count = 0
         list_of_results = []
-        if(first_line[8:18] == 'unreleased' or first_line[8:18] == 'Unreleased'):
+        if (first_line[8:18] == 'unreleased' or first_line[8:18] == 'Unreleased'):
             with open(file_name, 'r') as read_obj:
                 for line in read_obj:
                     if count == 2:
@@ -322,7 +459,7 @@ class WriteToChangeLog(object):
         oneview_api_version = 'OneView ' + 'v' + str(self.added_integer)
         try:
             for ele in self.rel_list:
-                 rel_modules.append(list(rel_dict.keys())[list(rel_dict.values()).index(ele)])
+                rel_modules.append(list(rel_dict.keys())[list(rel_dict.values()).index(ele)])
             print(str(rel_modules))
         except Exception as e:
             logging.debug("Unable to find a module {0}".format(str(e)))
@@ -332,7 +469,9 @@ class WriteToChangeLog(object):
             dummy_file = open("dummy_CHANGELOG.md", "w")
             dummy_file.write("# {}(unreleased)".format(str(self.final_version)))
             dummy_file.write("\n#### Notes\n")
-            dummy_file.write("Extends support of the SDK to OneView REST API version {} ({})".format(str(api_version),str(oneview_api_version)))
+            dummy_file.write("Extends support of the SDK to OneView REST API version {} ({})".format(str(api_version),
+                                                                                                     str(
+                                                                                                         oneview_api_version)))
             dummy_file.write("\n\n##### Features supported with the current release\n")
             for ele in sorted(rel_modules):
                 dummy_file.write("- {0} \n".format(str(ele)))
@@ -356,7 +495,9 @@ class WriteToChangeLog(object):
         except Exception as e:
             print("Exception occurred while writing to CHANGELOG {0}".format(str(e)))
 
+
 resource_names = []
+
 
 class WriteToEndpointsFile(object):
     def __init__(self, product_table_name, executed_files, is_ansible, sdk):
@@ -421,7 +562,7 @@ class WriteToEndpointsFile(object):
         self.load_md()
         for line in self.all_lines:
             count += 1
-            if line.startswith('|     '+resource_name):
+            if line.startswith('|     ' + resource_name):
                 resource_name_row_start = count
 
                 for no in range(count, len(self.all_lines)):
@@ -432,11 +573,11 @@ class WriteToEndpointsFile(object):
                 return resource_name_row_start, resource_name_row_end
 
     def get_lines(self, st_no, end_no):
-            lines = list()
-            self.load_md()
-            for no in range(st_no, end_no):
-                lines.append(dict({'line_no': no, 'line': self.all_lines[no]}))
-            return lines
+        lines = list()
+        self.load_md()
+        for no in range(st_no, end_no):
+            lines.append(dict({'line_no': no, 'line': self.all_lines[no]}))
+        return lines
 
     def get_old_end_points(self, st_no, end_no, webscraping_data):
         lines = self.get_lines(st_no, end_no)
@@ -470,7 +611,7 @@ class WriteToEndpointsFile(object):
             if line.startswith('|<sub>'):
                 ln = line.split('|')
                 ln_length = len(ln)
-                desired_length = int(((((self.current_version+200)-800)/200)+3))
+                desired_length = int(((((self.current_version + 200) - 800) / 200) + 3))
                 split_module = ln[1].strip().split('<sub>')
                 module = split_module[-1].split('</sub>')[0]
                 if end_point == {module, ln[2].strip()}:
@@ -498,12 +639,12 @@ class WriteToEndpointsFile(object):
             new_end_point = self.validate_webscrapping_data(lines, end_point, '  :white_check_mark:   |\n')
             if new_end_point:
                 new_end_points.append(new_end_point)
-        # below code is to add new endpoints into endpoints-support.md file and its commented, parked aside 
+        # below code is to add new endpoints into endpoints-support.md file and its commented, parked aside
         # for end_point in new_end_points:
         #     if (len(list(end_point)[1]) > 5):
         #         add_col = '|<sub>'+list(end_point)[1]+'</sub>                                                      |'+' '+list(end_point)[0]+'      '+ '|  :heavy_minus_sign:   '*int(((((self.current_version+200)-800)/200)-1))+'|  :white_check_mark:   |\n'
         #     else:
-        #         add_col = '|<sub>'+list(end_point)[0]+'</sub>                                                      |'+' '+list(end_point)[1]+'      '+ '|  :heavy_minus_sign:   '*int(((((self.current_version+200)-800)/200)-1))+'|  :white_check_mark:   |\n'            
+        #         add_col = '|<sub>'+list(end_point)[0]+'</sub>                                                      |'+' '+list(end_point)[1]+'      '+ '|  :heavy_minus_sign:   '*int(((((self.current_version+200)-800)/200)-1))+'|  :white_check_mark:   |\n'
         #     line_no = lines[-1].get('line_no')
         #     self.all_lines[line_no] = self.all_lines[line_no]+add_col
         #     self.write_md()
@@ -532,6 +673,7 @@ class WriteToEndpointsFile(object):
             self.write_md()
         print("-------Completed write to endpoints file--------")
 
+
 def removeLogFiles(val):
     if val == True:
         print("Please check the working directory to check log files")
@@ -548,7 +690,7 @@ def removeLogFiles(val):
 
 
 if __name__ == '__main__':
-    selected_sdk = input("Please enter SDK you want to validate(python, ansible, ruby, go): ")
+    selected_sdk = input("Please enter SDK you want to validate(python, ansible, ruby, go, terraform): ")
     executed_files, is_ansible, sdk = ExecuteFiles(selected_sdk)
     resources_from_textfile = LoadResourcesFromFile()
     val4 = input('Please provide value as true to reside log files, else provide false: ')
@@ -560,11 +702,12 @@ if __name__ == '__main__':
     if val1 in ['y', 'yes', '']:
         if len(executed_files) != len(resources_from_textfile):
             val3 = input("There are few failed resources, even then do you want to write data to CHANGELOG.md: ")
-            if val3 in ['y','yes', '']:
+            if val3 in ['y', 'yes', '']:
                 write_obj = WriteToChangeLog(executed_files, sdk)
                 write_obj.write_data()
             else:
-                print("Please check failed_resources list and procees with writing to CHANGELOG with successfully executed files")
+                print(
+                    "Please check failed_resources list and procees with writing to CHANGELOG with successfully executed files")
         else:
             print("Started writing to CHANGELOG.md")
             write_obj = WriteToChangeLog(executed_files, sdk)
@@ -577,4 +720,4 @@ if __name__ == '__main__':
         read_md_obj = WriteToEndpointsFile('## HPE OneView', executed_files, is_ansible, sdk)
         read_md_obj.main()
     else:
-         print("Please proceed with editing endpoints file")
+        print("Please proceed with editing endpoints file")
