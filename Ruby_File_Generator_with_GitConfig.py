@@ -339,9 +339,7 @@ def create_folder_structure(path, old_directory, new_directory):
     if not os.path.exists(new_directory):
         print("Created new directory - '{}' in path - '{}'".format(new_directory, path))
         os.mkdir(new_directory)
-        os.chdir(new_directory)
-    else:
-        os.chdir(new_directory)
+    os.chdir(new_directory)
     if not os.path.exists('c7000'):
         print("Created new directory - '{}' in path - '{}'".format('c7000', new_directory))
         os.mkdir('c7000')
@@ -358,9 +356,7 @@ def create_i3s_folder_structure(path, old_directory, new_directory):
     if not os.path.exists(new_directory):
         print("Created new directory - '{}' in path - '{}'".format(new_directory, path))
         os.mkdir(new_directory)
-        os.chdir(new_directory)
-    else:
-        os.chdir(new_directory)
+    os.chdir(new_directory)
 
 
 def create_api_version_file(prev_api_version, current_api_version, old_path, new_path, old_file, new_file):

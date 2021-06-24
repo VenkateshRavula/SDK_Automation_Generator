@@ -1,6 +1,8 @@
 import os, re, shutil, git
 
-api_version = 2600
+api_version = 3000
+i3s_api_versions = [1000, 1020, 1600, 2000, 2010, 2020]
+
 # Resources dictionary
 chef_resource_dict = {'Connection Template': 'connection_template_provider',
                       'Enclosure': 'enclosure_provider',
@@ -29,6 +31,11 @@ chef_resource_dict = {'Connection Template': 'connection_template_provider',
                       'Volume Template': 'volume_template_provider'
                       }
 
+chef_i3s_resource_dict = {
+    'Artifact Bundle': 'artifact_bundle_provider',
+    'Deployment Plan': 'deployment_plan_provider',
+}
+
 path = os.getcwd()
 clone_dir = 'chef'
 # Deleting the clone directory if exists
@@ -42,6 +49,8 @@ cwd = os.getcwd()  # gets the path of current working directory(should be SDK re
 lib_path_list = ['libraries', 'resource_providers']
 lib_path = str(cwd) + os.path.sep + os.path.sep.join(lib_path_list)
 spec_path = str(cwd) + os.path.sep + 'spec'
+i3s_lib_path_list = ['libraries', 'resource_providers', 'image-streamer']
+i3s_lib_path = str(cwd) + os.path.sep + os.path.sep.join(i3s_lib_path_list)
 
 branchName = 'feature'
 remote_branches = []
@@ -73,7 +82,7 @@ new_branch.checkout()
 
 def generate_library_files(current_api_version, filepath, file_type, resource_name):
     """
-    This method will generate the library/spec files for each api version for ruby SDK.
+    This method will generate the libraries/spec files for each api version for chef SDK.
     :param
     current_api_version - oneview api version (2200 for OV 5.50)
     filepath - location of library/spec files
@@ -116,6 +125,39 @@ def generate_library_files(current_api_version, filepath, file_type, resource_na
     file_rewrite(synergy_new_path, resource_file_name, file_type)
 
 
+def generate_i3s_library_files(current_api_version, filepath, file_type, resource_name):
+    """
+    This method will generate the libraries/spec files for i3s for each api version for chef SDK.
+    :param
+    current_api_version - i3s api version (2000 for OV 5.40)
+    filepath - location of library/spec files
+    file_type - Can be library (or) spec
+    resource_name - i3s resource name
+    """
+    prev_api_version = i3s_api_versions[-2]
+    pre_prev_api_version = i3s_api_versions[-3]
+    prev_api_version_directory = 'api' + str(prev_api_version)
+    current_api_version_directory = 'api' + str(current_api_version)
+    file_extension = '.rb' if file_type == 'library' else '_spec.rb'
+
+    prev_api_version_file = str(prev_api_version_directory) + file_extension
+    current_api_version_file = str(current_api_version_directory) + file_extension
+
+    # Create api.rb/api_spec.rb file and api folder structure for different variants
+    create_i3s_api_version_file(pre_prev_api_version, prev_api_version, current_api_version, filepath, filepath,
+                                prev_api_version_file, current_api_version_file)
+    create_i3s_folder_structure(filepath, prev_api_version_directory, current_api_version_directory)
+
+    old_api_path = filepath + os.path.sep + str(prev_api_version_directory)
+    new_api_path = filepath + os.path.sep + str(current_api_version_directory)
+
+    # Create library/spec files for i3s resource
+    resource_file_name = chef_i3s_resource_dict[resource_name] + file_extension
+    create_i3s_api_version_file(pre_prev_api_version, prev_api_version, current_api_version, old_api_path, new_api_path,
+                                resource_file_name, resource_file_name)
+    file_rewrite(new_api_path, resource_file_name, file_type)
+
+
 def create_folder_structure(path, old_directory, new_directory):
     """
     Creates folder structures for each api version
@@ -133,6 +175,17 @@ def create_folder_structure(path, old_directory, new_directory):
         os.mkdir('synergy')
 
 
+def create_i3s_folder_structure(path, old_directory, new_directory):
+    """
+    Creates folder structures for each i3s api version
+    """
+    os.chdir(path) # switches the python environment to resource directory
+    if not os.path.exists(new_directory):
+        print("Created new directory - '{}' in path - '{}'".format(new_directory, path))
+        os.mkdir(new_directory)
+    os.chdir(new_directory)
+
+
 def create_api_version_file(prev_api_version, current_api_version, old_path, new_path, old_file, new_file):
     """
     Creates an api_version file for each release if not present (Ruby)
@@ -147,6 +200,27 @@ def create_api_version_file(prev_api_version, current_api_version, old_path, new
     if not os.path.exists(new_file):
         f_read = f_read.replace(str(prev_api_version), str(current_api_version))
         pre_prev_api_version = int(prev_api_version) - 200
+        f_read = f_read.replace(str(pre_prev_api_version), str(prev_api_version)) # this changes inherit path
+
+        f_out = open(new_file, 'w')  # open the file with the WRITE option
+        print("Created file - '{}' in path - '{}'".format(new_file, new_path))
+        f_out.write(f_read)  # write the the changes to the file
+        f_out.close()
+
+
+def create_i3s_api_version_file(pre_prev_api_version, prev_api_version, current_api_version, old_path, new_path, old_file, new_file):
+    """
+    Creates an api_version file for each release if not present (Ruby)
+    """
+    os.chdir(old_path) # switches the python environment to resource directory
+    if os.path.exists(old_file):
+        f_read = open(old_file).read()
+    else:
+        raise Exception("No such file named {}".format(old_file))
+
+    os.chdir(new_path)
+    if not os.path.exists(new_file):
+        f_read = f_read.replace(str(prev_api_version), str(current_api_version))
         f_read = f_read.replace(str(pre_prev_api_version), str(prev_api_version)) # this changes inherit path
 
         f_out = open(new_file, 'w')  # open the file with the WRITE option
@@ -174,6 +248,27 @@ def modify_spec_helper(current_api_version, path):
         print("Updating '{}' file with '{}' api version".format(spec_helper_file, current_api_version))
     if search_string3 not in f_read and search_string2 in f_read:
         f_read = f_read.replace(str(search_string2), str(replace_string2))
+        print("Updating '{}' file with spec context for '{}' api version".format(spec_helper_file, current_api_version))
+
+    f_out = open(spec_helper_file, 'w')  # open the file with the WRITE option
+    f_out.write(f_read)  # write the the changes to the file
+    f_out.close()
+
+
+def modify_i3s_spec_helper(path):
+    """
+    Adds the spec context for latest api version in 'spec_helper.rb' file
+    """
+    prev_api_version = i3s_api_versions[-2]
+    current_api_version = i3s_api_versions[-1]
+    os.chdir(path)
+    spec_helper_file = 'spec_helper.rb'
+    search_string1 = "  let(:client{0}) do\n    OneviewSDK::ImageStreamer::Client.new(url: 'https://i3s.example.com', token: 'token123', api_version: {0})\n  end\n".format(prev_api_version)
+    search_string2 = search_string1.replace(str(prev_api_version), str(current_api_version))
+    replace_string1 = search_string1 + "\n" + search_string2
+    f_read = open(spec_helper_file).read()
+    if search_string2 not in f_read and search_string1 in f_read:
+        f_read = f_read.replace(str(search_string1), str(replace_string1))
         print("Updating '{}' file with spec context for '{}' api version".format(spec_helper_file, current_api_version))
 
     f_out = open(spec_helper_file, 'w')  # open the file with the WRITE option
@@ -209,10 +304,13 @@ if __name__ == '__main__':
     for resource in chef_resource_dict:
         generate_library_files(api_version, lib_path, 'library', resource)
         modify_spec_helper(api_version, spec_path)
+    for i3s_resource in chef_i3s_resource_dict:
+        generate_i3s_library_files(api_version, lib_path, 'library', i3s_resource)
+        modify_i3s_spec_helper(spec_path)
 
     repo.git.add(A=True)
     repo.git.commit('-m', 'PR for config changes #pr',
-                    author='chebroluharika@gmail.com') # to commit changes
+                    author='venkatesh.ravula1992@gmail.com') # to commit changes
     repo.git.push('--set-upstream', 'origin', branchName)
     repo.close()
     os.chdir(path) # Navigate to parent directory
