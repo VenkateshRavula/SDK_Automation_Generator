@@ -307,8 +307,8 @@ def modify_example_api_version(filepath, file_name, prev_api_version, current_ap
     os.chdir(filepath)
     if os.path.exists(file_name):
         f_read = open(file_name).read()
-        search_string = "api_version: {}".format(prev_api_version)
-        replace_string = "api_version: {}".format(current_api_version)
+        search_string = "api_version: {}".format(str(prev_api_version))
+        replace_string = "api_version: {}".format(str(current_api_version))
         f_read = f_read.replace(search_string, replace_string)
 
         f_out = open(file_name, 'w')  # open the file with the WRITE option
@@ -326,12 +326,12 @@ if __name__ == '__main__':
     modify_i3s_spec_helper(spec_path)
 
     # Update current api version in examples
-    chef_example_files = [filename.replace('_provider','') for filename in chef_resource_dict.values()]
-    chef_i3s_example_files = [filename.replace('_provider','') for filename in chef_i3s_resource_dict.values()]
+    chef_example_files = [filename.replace('_provider','')+'.rb' for filename in chef_resource_dict.values()]
+    chef_i3s_example_files = [filename.replace('_provider','')+'.rb' for filename in chef_i3s_resource_dict.values()]
     for resource in chef_example_files:
-        modify_example_api_version(chef_example_path, int(api_version)-200, api_version)
+        modify_example_api_version(chef_example_path, resource, int(api_version)-200, api_version)
     for resource in chef_i3s_example_files:
-        modify_example_api_version(chef_i3s_example_path, i3s_api_versions[-2], i3s_api_versions[-1])
+        modify_example_api_version(chef_i3s_example_path, resource, i3s_api_versions[-2], i3s_api_versions[-1])
 
     repo.git.add(A=True)
     repo.git.commit('-m', 'PR for config changes #API{0}'.format(api_version),
