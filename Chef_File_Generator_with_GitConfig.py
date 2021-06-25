@@ -1,7 +1,7 @@
 import os, re, shutil, git
 
 api_version = 3000
-i3s_api_versions = [1000, 1020, 1600, 2000, 2010, 2020]
+i3s_api_versions = [1000, 1020, 1600, 2000, 2010, 2020, 2040]
 
 # Resources dictionary
 chef_resource_dict = {'Connection Template': 'connection_template_provider',
@@ -49,7 +49,7 @@ cwd = os.getcwd()  # gets the path of current working directory(should be SDK re
 lib_path_list = ['libraries', 'resource_providers']
 lib_path = str(cwd) + os.path.sep + os.path.sep.join(lib_path_list)
 spec_path = str(cwd) + os.path.sep + 'spec'
-i3s_lib_path_list = ['libraries', 'resource_providers', 'image-streamer']
+i3s_lib_path_list = ['libraries', 'resource_providers', 'image_streamer']
 i3s_lib_path = str(cwd) + os.path.sep + os.path.sep.join(i3s_lib_path_list)
 
 branchName = 'feature'
@@ -134,6 +134,7 @@ def generate_i3s_library_files(current_api_version, filepath, file_type, resourc
     file_type - Can be library (or) spec
     resource_name - i3s resource name
     """
+    current_api_version = i3s_api_versions[-1]
     prev_api_version = i3s_api_versions[-2]
     pre_prev_api_version = i3s_api_versions[-3]
     prev_api_version_directory = 'api' + str(prev_api_version)
@@ -188,7 +189,7 @@ def create_i3s_folder_structure(path, old_directory, new_directory):
 
 def create_api_version_file(prev_api_version, current_api_version, old_path, new_path, old_file, new_file):
     """
-    Creates an api_version file for each release if not present (Ruby)
+    Creates an api_version file for each release if not present (Chef)
     """
     os.chdir(old_path) # switches the python environment to resource directory
     if os.path.exists(old_file):
@@ -210,7 +211,7 @@ def create_api_version_file(prev_api_version, current_api_version, old_path, new
 
 def create_i3s_api_version_file(pre_prev_api_version, prev_api_version, current_api_version, old_path, new_path, old_file, new_file):
     """
-    Creates an api_version file for each release if not present (Ruby)
+    Creates an api_version file for each release if not present (Chef)
     """
     os.chdir(old_path) # switches the python environment to resource directory
     if os.path.exists(old_file):
@@ -263,7 +264,7 @@ def modify_i3s_spec_helper(path):
     current_api_version = i3s_api_versions[-1]
     os.chdir(path)
     spec_helper_file = 'spec_helper.rb'
-    search_string1 = "  let(:client{0}) do\n    OneviewSDK::ImageStreamer::Client.new(url: 'https://i3s.example.com', token: 'token123', api_version: {0})\n  end\n".format(prev_api_version)
+    search_string1 = "  let(:i3s_client{0}) do\n    OneviewSDK::ImageStreamer::Client.new(url: 'https://i3s.example.com', token: 'token123', api_version: {0})\n  end\n".format(prev_api_version)
     search_string2 = search_string1.replace(str(prev_api_version), str(current_api_version))
     replace_string1 = search_string1 + "\n" + search_string2
     f_read = open(spec_helper_file).read()
@@ -303,17 +304,18 @@ def file_rewrite(file_path, filename, file_type):
 if __name__ == '__main__':
     for resource in chef_resource_dict:
         generate_library_files(api_version, lib_path, 'library', resource)
-        modify_spec_helper(api_version, spec_path)
     for i3s_resource in chef_i3s_resource_dict:
-        generate_i3s_library_files(api_version, lib_path, 'library', i3s_resource)
-        modify_i3s_spec_helper(spec_path)
+        generate_i3s_library_files(api_version, i3s_lib_path, 'library', i3s_resource)
+    modify_spec_helper(api_version, spec_path)
+    modify_i3s_spec_helper(spec_path)
 
     repo.git.add(A=True)
-    repo.git.commit('-m', 'PR for config changes #pr',
+    repo.git.commit('-m', 'PR for config changes #API{0}'.format(api_version),
                     author='venkatesh.ravula1992@gmail.com') # to commit changes
     repo.git.push('--set-upstream', 'origin', branchName)
     repo.close()
     os.chdir(path) # Navigate to parent directory
-    # Delete ruby directory as cleanup
+    # Delete chef directory as cleanup
     if os.path.exists(clone_dir):
+        print("Deleted clone directory")
         shutil.rmtree(clone_dir, ignore_errors=True)
