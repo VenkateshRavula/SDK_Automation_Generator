@@ -51,6 +51,8 @@ lib_path = str(cwd) + os.path.sep + os.path.sep.join(lib_path_list)
 spec_path = str(cwd) + os.path.sep + 'spec'
 i3s_lib_path_list = ['libraries', 'resource_providers', 'image_streamer']
 i3s_lib_path = str(cwd) + os.path.sep + os.path.sep.join(i3s_lib_path_list)
+chef_example_path = str(cwd) + os.path.sep + 'examples'
+chef_i3s_example_path = chef_example_path + os.path.sep + 'image_streamer'
 
 branchName = 'feature'
 remote_branches = []
@@ -159,13 +161,13 @@ def generate_i3s_library_files(current_api_version, filepath, file_type, resourc
     file_rewrite(new_api_path, resource_file_name, file_type)
 
 
-def create_folder_structure(path, old_directory, new_directory):
+def create_folder_structure(target_path, old_directory, new_directory):
     """
     Creates folder structures for each api version
     """
-    os.chdir(path) # switches the python environment to resource directory
+    os.chdir(target_path) # switches the python environment to resource directory
     if not os.path.exists(new_directory):
-        print("Created new directory - '{}' in path - '{}'".format(new_directory, path))
+        print("Created new directory - '{}' in path - '{}'".format(new_directory, target_path))
         os.mkdir(new_directory)
     os.chdir(new_directory)
     if not os.path.exists('c7000'):
@@ -176,13 +178,13 @@ def create_folder_structure(path, old_directory, new_directory):
         os.mkdir('synergy')
 
 
-def create_i3s_folder_structure(path, old_directory, new_directory):
+def create_i3s_folder_structure(target_path, old_directory, new_directory):
     """
     Creates folder structures for each i3s api version
     """
-    os.chdir(path) # switches the python environment to resource directory
+    os.chdir(target_path) # switches the python environment to resource directory
     if not os.path.exists(new_directory):
-        print("Created new directory - '{}' in path - '{}'".format(new_directory, path))
+        print("Created new directory - '{}' in path - '{}'".format(new_directory, target_path))
         os.mkdir(new_directory)
     os.chdir(new_directory)
 
@@ -230,13 +232,13 @@ def create_i3s_api_version_file(pre_prev_api_version, prev_api_version, current_
         f_out.close()
 
 
-def modify_spec_helper(current_api_version, path):
+def modify_spec_helper(current_api_version, filepath):
     """
     Adds the spec context for latest api version in 'spec_helper.rb' file
     """
     prev_api_version = int(current_api_version) - 200
     next_api_version = int(current_api_version) + 200
-    os.chdir(path)
+    os.chdir(filepath)
     spec_helper_file = 'spec_helper.rb'
     search_string1 = "allow_any_instance_of(OneviewSDK::Client).to receive(:appliance_api_version).and_return({})".format(current_api_version)
     replace_string1 = search_string1.replace(str(current_api_version), str(next_api_version))
@@ -256,13 +258,13 @@ def modify_spec_helper(current_api_version, path):
     f_out.close()
 
 
-def modify_i3s_spec_helper(path):
+def modify_i3s_spec_helper(filepath):
     """
     Adds the spec context for latest api version in 'spec_helper.rb' file
     """
     prev_api_version = i3s_api_versions[-2]
     current_api_version = i3s_api_versions[-1]
-    os.chdir(path)
+    os.chdir(filepath)
     spec_helper_file = 'spec_helper.rb'
     search_string1 = "  let(:i3s_client{0}) do\n    OneviewSDK::ImageStreamer::Client.new(url: 'https://i3s.example.com', token: 'token123', api_version: {0})\n  end\n".format(prev_api_version)
     search_string2 = search_string1.replace(str(prev_api_version), str(current_api_version))
@@ -301,13 +303,35 @@ def file_rewrite(file_path, filename, file_type):
     fw.close()
 
 
+def modify_example_api_version(filepath, file_name, prev_api_version, current_api_version):
+    os.chdir(filepath)
+    if os.path.exists(file_name):
+        f_read = open(file_name).read()
+        search_string = "api_version: {}".format(prev_api_version)
+        replace_string = "api_version: {}".format(current_api_version)
+        f_read = f_read.replace(search_string, replace_string)
+
+        f_out = open(file_name, 'w')  # open the file with the WRITE option
+        f_out.write(f_read)  # write the the changes to the file
+        f_out.close()
+
+
 if __name__ == '__main__':
     for resource in chef_resource_dict:
         generate_library_files(api_version, lib_path, 'library', resource)
     for i3s_resource in chef_i3s_resource_dict:
         generate_i3s_library_files(api_version, i3s_lib_path, 'library', i3s_resource)
+
     modify_spec_helper(api_version, spec_path)
     modify_i3s_spec_helper(spec_path)
+
+    # Update current api version in examples
+    chef_example_files = [filename.replace('_provider','') for filename in chef_resource_dict.values()]
+    chef_i3s_example_files = [filename.replace('_provider','') for filename in chef_i3s_resource_dict.values()]
+    for resource in chef_example_files:
+        modify_example_api_version(chef_example_path, int(api_version)-200, api_version)
+    for resource in chef_i3s_example_files:
+        modify_example_api_version(chef_i3s_example_path, i3s_api_versions[-2], i3s_api_versions[-1])
 
     repo.git.add(A=True)
     repo.git.commit('-m', 'PR for config changes #API{0}'.format(api_version),
